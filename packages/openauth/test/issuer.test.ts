@@ -58,8 +58,15 @@ const issuerConfig = {
     }
     throw new Error("Invalid provider: " + value.provider)
   },
+  userinfo: async (subject) => {
+    return {
+      userID: subject.userID,
+      email: "foo@bar.com",
+    }
+  },
 }
 const auth = issuer(issuerConfig)
+
 
 const expectNonEmptyString = expect.stringMatching(/.+/)
 
@@ -385,6 +392,14 @@ describe("user info", () => {
 
     const userinfo = await response.json()
 
-    expect(userinfo).toStrictEqual({ userID: "123" })
+    expect(userinfo).toStrictEqual({
+      subject: {
+        userID: "123"
+      },
+      userinfo: {
+        userID: "123",
+        email: "foo@bar.com"
+      }
+    })
   })
 })

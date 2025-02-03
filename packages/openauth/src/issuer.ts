@@ -435,6 +435,28 @@ export interface IssuerInput<
     },
     req: Request,
   ): Promise<boolean>
+  /**
+   * Optional callback to retrieve additional user information for the /userinfo endpoint.
+   * This allows returning more properties than what is stored in the subject token.
+   * 
+   * @example
+   * ```ts
+   * {
+   *   userinfo: async (subject) => {
+   *     // Fetch additional user data from database
+   *     const user = await db.users.findOne({ id: properties.userID })
+   *     return {
+   *       ...properties,
+   *       email: user.email,
+   *       name: user.name
+   *     }
+   *   }
+   * }
+   * ```
+   */
+  userinfo?(
+    subject: SubjectSchema,
+  ): Promise<Record<string, any>>
 }
 
 /**
@@ -1120,7 +1142,13 @@ export function issuer<
     ].validate(result.payload.properties)
 
     if (!validated.issues && result.payload.mode === "access") {
-      return c.json(validated.value as SubjectSchema)
+      if (input.userinfo) {
+        const userinfo = await input.userinfo(
+          validated.value as SubjectSchema
+        )
+        return c.json({userinfo, subject: validated.value})
+      }
+      return c.json({subject: validated.value})
     }
 
     return c.json({
